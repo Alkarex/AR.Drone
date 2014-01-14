@@ -4,11 +4,11 @@ namespace AR.Drone.Client.Commands
 {
     public class ProgressCommand : ATCommand
     {
-        private readonly FlightMode _mode;
-        private readonly float _roll;
-        private readonly float _pitch;
-        private readonly float _yaw;
-        private readonly float _gaz;
+        public readonly FlightMode _mode;
+		public readonly float _roll;
+		public readonly float _pitch;
+		public readonly float _yaw;
+		public readonly float _gaz;
 
         public ProgressCommand(FlightMode mode, float roll, float pitch, float yaw, float gaz)
         {

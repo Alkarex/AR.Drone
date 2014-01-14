@@ -1,20 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.Reflection;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using AR.Drone.Client;
+﻿using AR.Drone.Client;
 using AR.Drone.Client.Commands;
 using AR.Drone.Client.Configuration;
 using AR.Drone.Data;
 using AR.Drone.Data.Navigation;
 using AR.Drone.Data.Navigation.Native;
-using AR.Drone.Infrastructure;
 using AR.Drone.Media;
 using AR.Drone.Video;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace AR.Drone.WinApp
 {
@@ -43,6 +45,7 @@ namespace AR.Drone.WinApp
             _droneClient.NavigationPacketAcquired += OnNavigationPacketAcquired;
             _droneClient.VideoPacketAcquired += OnVideoPacketAcquired;
             _droneClient.NavigationDataAcquired += data => _navigationData = data;
+			//_droneClient.OnProgress += _droneClient_OnProgress;
 
             tmrStateUpdate.Enabled = true;
             tmrVideoUpdate.Enabled = true;
@@ -65,6 +68,7 @@ namespace AR.Drone.WinApp
 
         protected override void OnClosed(EventArgs e)
         {
+			UserInputLogClose();	//Alex
             StopRecording();
 
             _droneClient.Dispose();
@@ -115,8 +119,22 @@ namespace AR.Drone.WinApp
             else
                 VideoHelper.UpdateBitmap(ref _frameBitmap, ref _frame);
 
+			DrawCross(ref _frameBitmap);	//Alex
+
             pbVideo.Image = _frameBitmap;
         }
+
+		void DrawCross(ref Bitmap bitmap)
+		{
+			var cx = 4 + bitmap.Width / 2;
+			var cy = 4 + bitmap.Height / 2;
+			for (var x = cx - 8; x <= cx + 8; x++)
+				//for (var y = cy - 1; y <= cy + 1; y++)
+					bitmap.SetPixel(x, cy, Color.Lime);
+			for (var y = cy - 8; y <= cy + 8; y++)
+				//for (var x = cx - 1; x <= cx + 1; x++)
+					bitmap.SetPixel(cx, y, Color.Lime);
+		}
 
         private void tmrStateUpdate_Tick(object sender, EventArgs e)
         {
@@ -145,6 +163,8 @@ namespace AR.Drone.WinApp
                 node.Text = string.Format("Ctrl State: {0}", flying_state);
 
                 DumpBranch(vativeNode.Nodes, navdataBag);
+
+				labelLowBattery.Visible = _navigationData.Battery.Low;
             }
             tvInfo.EndUpdate();
         }
@@ -207,6 +227,8 @@ namespace AR.Drone.WinApp
 
         private void btnHover_Click(object sender, EventArgs e)
         {
+			checkBoxMouseEnabled.Checked = false;
+			checkBoxMouseEnabled_CheckedChanged(sender, e);
             _droneClient.Hover();
         }
 
@@ -330,5 +352,220 @@ namespace AR.Drone.WinApp
                 }
             }
         }
-    }
+
+		TextWriter userInputLog;	//Alex
+
+		void UserInputLogOpen()
+		{
+			if (userInputLog == null)
+			{
+				/*var path = String.Format(CultureInfo.InvariantCulture, "UserInputLog-{0}.txt.gzip", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH'-'mm'-'ss"));
+					var fileStream = File.Create(path);
+					var gzip = new GZipStream(fileStream, CompressionMode.Compress);
+					userInputLog = new StreamWriter(gzip, Encoding.UTF8);*/
+				if (!Directory.Exists("../../../logs/"))
+					Directory.CreateDirectory("../../../logs/");
+				var path = String.Format(CultureInfo.InvariantCulture, "../../../logs/UserInputLog-{0}.txt", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH'-'mm'-'ss"));
+				userInputLog = new StreamWriter(path, true, Encoding.UTF8);
+				//userInputLog.WriteLine("{0}\tInit\t{1}\t{2}", DateTime.Now.Ticks, MouseInput.GazeModeX, MouseInput.GazeModeY);
+			}
+		}
+
+		void UserInputLog(String line)	//Alex
+		{
+			if (userInputLog != null)
+				userInputLog.WriteLine(line);
+		}
+
+		void UserInputLogClose()	//Alex
+		{
+			if (userInputLog != null)
+			{
+				userInputLog.Close();
+				userInputLog = null;
+			}
+		}
+
+		//readonly double PrimaryScreenWidthCentre = SystemParameters.PrimaryScreenWidth / 2.0;	//Alex
+		//readonly double PrimaryScreenHeightCentre = SystemParameters.PrimaryScreenHeight / 2.0;	//Alex
+
+		static float MapOrderRange(double raw, double orderAttenuation, double minOrderValue, double maxOrderValue)
+		{//Alex
+			if (Math.Abs(raw) < 0.02) return 0.0f;
+			var result = orderAttenuation * raw;
+			if (result > maxOrderValue) return (float)maxOrderValue;
+			if (result < minOrderValue) return (float)minOrderValue;
+			return (float)result;
+		}
+
+		void ProcessPrepare(double roll, double pitch, double yaw, double gaz)
+		{
+			//labelDebug.Top = pbVideo.Height / 2;
+			//labelDebug.Left = pbVideo.Width / 2;
+			labelDebug.Text = MapOrderRange(roll, orderAttenuation: 0.3, minOrderValue: -0.1, maxOrderValue: 0.1).ToString() + '|' +
+				MapOrderRange(pitch, orderAttenuation: 0.3, minOrderValue: -0.1, maxOrderValue: 0.1).ToString() + '|' +
+				MapOrderRange(yaw, orderAttenuation: 0.5, minOrderValue: -0.2, maxOrderValue: 0.2).ToString() + '|' +
+				MapOrderRange(gaz, orderAttenuation: 0.5, minOrderValue: -0.5, maxOrderValue: 0.5).ToString();
+
+			_droneClient.Progress(FlightMode.Progressive,
+				MapOrderRange(roll, orderAttenuation: 0.3, minOrderValue: -0.1, maxOrderValue: 0.1),
+				MapOrderRange(pitch, orderAttenuation: 0.3, minOrderValue: -0.1, maxOrderValue: 0.1),
+				MapOrderRange(yaw, orderAttenuation: 0.5, minOrderValue: -0.2, maxOrderValue: 0.2),
+				MapOrderRange(gaz, orderAttenuation: 0.5, minOrderValue: -0.5, maxOrderValue: 0.5));
+		}
+
+		void timerInputControls_Tick(object sender, EventArgs e)	//Alex
+		{
+			var xCentre = pbVideo.Width / 2.0;
+			var yCentre = pbVideo.Height / 2.0;
+			var xValue = (Control.MousePosition.X - xCentre) / xCentre;
+			var yValue = (Control.MousePosition.Y - yCentre) / yCentre;
+			//labelDebug.Text = xValue.ToString() + '/' + yValue.ToString();
+			switch (comboBoxMouseMode.SelectedIndex)
+			{
+				case 0:	//1.XTranslation/YSpeed
+					ProcessPrepare(roll: xValue,	pitch: yValue,		yaw: wKeyvalue,	gaz: zKeyvalue);
+					break;
+				case 1:	//2.XRotation/YSpeed
+					ProcessPrepare(roll: wKeyvalue,	pitch: yValue,		yaw: xValue,	gaz: zKeyvalue);
+					break;
+				case 2:	//3.XTranslation/YAltitude
+					ProcessPrepare(roll: xValue,	pitch: -zKeyvalue,	yaw: wKeyvalue,	gaz: -yValue);
+					break;
+				case 3:	//4.XRotation/YAltitude
+					ProcessPrepare(roll: wKeyvalue,	pitch: -zKeyvalue,	yaw: xValue,	gaz: -yValue);
+					break;
+				default:
+					break;
+			}
+			UserInputLog(String.Format("{0}\t{1}\t{2}\t{3}", DateTime.Now.Ticks, comboBoxMouseMode.Text, xValue, yValue));
+		}
+
+		private void checkBoxMouseEnabled_CheckedChanged(object sender, EventArgs e)
+		{
+			if (checkBoxMouseEnabled.Checked)
+			{
+				checkBoxMouseEnabled.Focus();
+				timerInputControls.Enabled = true;
+			}
+			else
+			{
+				timerInputControls.Enabled = false;
+				_droneClient.Hover();
+			}
+		}
+
+		double zKeyvalue = 0.0;
+		double wKeyvalue = 0.0;
+
+		private void MainForm_KeyDown(object sender, KeyEventArgs e)
+		{
+			var keyCode = e.KeyCode;
+			switch (e.KeyValue)
+			{
+				case 16:
+					keyCode = Keys.LShiftKey;
+					break;
+				case 17:
+					keyCode = Keys.LControlKey;
+					break;
+			}
+			var prevent = true;
+			switch (keyCode)
+			{
+				case Keys.T:
+				case Keys.LShiftKey:
+				case Keys.F11:
+					if (checkBoxMouseEnabled.Enabled)
+					{
+						UserInputLogOpen();
+						_droneClient.Takeoff();
+						base.WindowState = FormWindowState.Maximized;
+						base.FormBorderStyle = FormBorderStyle.None;
+						pbVideo.Dock = DockStyle.Fill;
+						Thread.Sleep(500);
+						_droneClient.Hover();
+					}
+					break;
+				case Keys.G:
+				case Keys.M:
+				case Keys.LControlKey:
+					if (checkBoxMouseEnabled.Enabled)
+					{
+						checkBoxMouseEnabled.Checked = !checkBoxMouseEnabled.Checked;
+						checkBoxMouseEnabled_CheckedChanged(sender, e);
+					}
+					break;
+				case Keys.Space:
+				case Keys.Escape:
+					timerInputControls.Enabled = false;
+					checkBoxMouseEnabled.Checked = false;
+					base.FormBorderStyle = FormBorderStyle.Sizable;
+					pbVideo.Dock = DockStyle.None;
+					Thread.Sleep(100);
+					_droneClient.Land();
+					UserInputLogClose();
+					break;
+				case Keys.NumPad8:
+				case Keys.Up:
+					zKeyvalue = 0.75;
+					break;
+				case Keys.NumPad2:
+				case Keys.Down:
+					zKeyvalue = -0.75;
+					break;
+				case Keys.NumPad4:
+				case Keys.Left:
+					wKeyvalue = -1.0;
+					break;
+				case Keys.NumPad6:
+				case Keys.Right:
+					wKeyvalue = 1.0;
+					break;
+				default:
+					prevent = false;
+					break;
+			}
+			if (prevent)
+				e.SuppressKeyPress = true;
+			UserInputLog(String.Format("{0}\t{1}\t{2}\t{3}", DateTime.Now.Ticks, comboBoxMouseMode.Text, "KeyDown", keyCode));
+		}
+
+		private void MainForm_KeyUp(object sender, KeyEventArgs e)
+		{
+			var keyCode = e.KeyCode;
+			switch (e.KeyValue)
+			{
+				case 16:
+					keyCode = Keys.LShiftKey;
+					break;
+				case 17:
+					keyCode = Keys.LControlKey;
+					break;
+			}
+			switch (keyCode)
+			{
+				case Keys.NumPad8:
+				case Keys.NumPad2:
+				case Keys.Up:
+				case Keys.Down:
+					zKeyvalue = 0.0;
+					break;
+				case Keys.NumPad4:
+				case Keys.NumPad6:
+				case Keys.Left:
+				case Keys.Right:
+					wKeyvalue = 0.0;
+					break;
+			}
+			UserInputLog(String.Format("{0}\t{1}\t{2}\t{3}", DateTime.Now.Ticks, comboBoxMouseMode.Text, "KeyUp", keyCode));
+		}
+
+		void comboBoxMouseMode_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			checkBoxMouseEnabled.Enabled = true;
+			checkBoxMouseEnabled.Checked = false;
+			checkBoxMouseEnabled_CheckedChanged(sender, e);
+		}
+	}
 }

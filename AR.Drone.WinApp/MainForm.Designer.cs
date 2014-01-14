@@ -55,6 +55,11 @@
             this.btnStartRecording = new System.Windows.Forms.Button();
             this.btnStopRecording = new System.Windows.Forms.Button();
             this.btnReplay = new System.Windows.Forms.Button();
+			this.timerInputControls = new System.Windows.Forms.Timer(this.components);
+			this.comboBoxMouseMode = new System.Windows.Forms.ComboBox();
+			this.checkBoxMouseEnabled = new System.Windows.Forms.CheckBox();
+			this.labelLowBattery = new System.Windows.Forms.Label();
+			this.labelDebug = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pbVideo)).BeginInit();
             this.SuspendLayout();
             // 
@@ -84,6 +89,7 @@
             this.pbVideo.Location = new System.Drawing.Point(12, 41);
             this.pbVideo.Name = "pbVideo";
             this.pbVideo.Size = new System.Drawing.Size(640, 360);
+			this.pbVideo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pbVideo.TabIndex = 2;
             this.pbVideo.TabStop = false;
             // 
@@ -307,11 +313,71 @@
             this.btnReplay.UseVisualStyleBackColor = true;
             this.btnReplay.Click += new System.EventHandler(this.btnReplay_Click);
             // 
+			// timerInputControls
+			// 
+			this.timerInputControls.Tick += new System.EventHandler(this.timerInputControls_Tick);
+			// 
+			// comboBoxMouseMode
+			// 
+			this.comboBoxMouseMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.comboBoxMouseMode.FormattingEnabled = true;
+			this.comboBoxMouseMode.Items.AddRange(new object[] {
+            "1.XTranslation/YSpeed",
+            "2.XRotation/YSpeed",
+            "3.XTranslation/YAltitude",
+            "4.XRotation/YAltitude"});
+			this.comboBoxMouseMode.Location = new System.Drawing.Point(12, 470);
+			this.comboBoxMouseMode.Name = "comboBoxMouseMode";
+			this.comboBoxMouseMode.Size = new System.Drawing.Size(156, 21);
+			this.comboBoxMouseMode.TabIndex = 25;
+			this.comboBoxMouseMode.SelectedIndexChanged += new System.EventHandler(this.comboBoxMouseMode_SelectedIndexChanged);
+			// 
+			// checkBoxMouseEnabled
+			// 
+			this.checkBoxMouseEnabled.AutoSize = true;
+			this.checkBoxMouseEnabled.Enabled = false;
+			this.checkBoxMouseEnabled.Location = new System.Drawing.Point(12, 441);
+			this.checkBoxMouseEnabled.Name = "checkBoxMouseEnabled";
+			this.checkBoxMouseEnabled.Size = new System.Drawing.Size(99, 17);
+			this.checkBoxMouseEnabled.TabIndex = 26;
+			this.checkBoxMouseEnabled.Text = "Mouse enabled";
+			this.checkBoxMouseEnabled.UseVisualStyleBackColor = true;
+			this.checkBoxMouseEnabled.CheckedChanged += new System.EventHandler(this.checkBoxMouseEnabled_CheckedChanged);
+			// 
+			// labelLowBattery
+			// 
+			this.labelLowBattery.AutoSize = true;
+			this.labelLowBattery.BackColor = System.Drawing.Color.Black;
+			this.labelLowBattery.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.labelLowBattery.ForeColor = System.Drawing.Color.Red;
+			this.labelLowBattery.Location = new System.Drawing.Point(307, 41);
+			this.labelLowBattery.Name = "labelLowBattery";
+			this.labelLowBattery.Size = new System.Drawing.Size(142, 29);
+			this.labelLowBattery.TabIndex = 27;
+			this.labelLowBattery.Text = "Low battery!";
+			this.labelLowBattery.Visible = false;
+			// 
+			// labelDebug
+			// 
+			this.labelDebug.AutoSize = true;
+			this.labelDebug.BackColor = System.Drawing.Color.Transparent;
+			this.labelDebug.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.labelDebug.Location = new System.Drawing.Point(658, 9);
+			this.labelDebug.Name = "labelDebug";
+			this.labelDebug.Size = new System.Drawing.Size(57, 20);
+			this.labelDebug.TabIndex = 28;
+			this.labelDebug.Text = "Debug";
+			// 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(964, 533);
+			this.Controls.Add(this.labelDebug);
+			this.Controls.Add(this.labelLowBattery);
+			this.Controls.Add(this.pbVideo);
+			this.Controls.Add(this.checkBoxMouseEnabled);
+			this.Controls.Add(this.comboBoxMouseMode);
             this.Controls.Add(this.btnReplay);
             this.Controls.Add(this.btnStopRecording);
             this.Controls.Add(this.btnStartRecording);
@@ -333,13 +399,16 @@
             this.Controls.Add(this.button3);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.btnFlatTrim);
-            this.Controls.Add(this.pbVideo);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnStart);
+			this.KeyPreview = true;
             this.Name = "MainForm";
             this.Text = "AR.Drone Control";
+			this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyDown);
+			this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyUp);
             ((System.ComponentModel.ISupportInitialize)(this.pbVideo)).EndInit();
             this.ResumeLayout(false);
+			this.PerformLayout();
 
         }
 
@@ -371,6 +440,11 @@
         private System.Windows.Forms.Button btnStartRecording;
         private System.Windows.Forms.Button btnStopRecording;
         private System.Windows.Forms.Button btnReplay;
+		private System.Windows.Forms.Timer timerInputControls;
+		private System.Windows.Forms.ComboBox comboBoxMouseMode;
+		private System.Windows.Forms.CheckBox checkBoxMouseEnabled;
+		private System.Windows.Forms.Label labelLowBattery;
+		private System.Windows.Forms.Label labelDebug;
     }
 }
 

@@ -167,6 +167,8 @@ namespace AR.Drone.Client
 
         public event Action<VideoPacket> VideoPacketAcquired;
 
+		public event Action<ProgressCommand> OnProgress;
+
         #endregion
 
         #region Properties
@@ -261,7 +263,12 @@ namespace AR.Drone.Client
                 throw new ArgumentOutOfRangeException("gaz");
 
             if (_navigationData.State.HasFlag(NavigationState.Flying))
-                Send(new ProgressCommand(mode, roll, pitch, yaw, gaz));
+			{
+				var progress = new ProgressCommand(mode, roll, pitch, yaw, gaz);
+				if (OnProgress != null)
+					OnProgress(progress);
+				Send(progress);
+			}
         }
 
         /// <summary>
