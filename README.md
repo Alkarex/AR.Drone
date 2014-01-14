@@ -1,3 +1,11 @@
+## Fork for gaze-control
+The original project is located at [Ruslan-B / AR.Drone](https://github.com/Ruslan-B/AR.Drone).
+
+This if a fork to perform some experiments (2013-09) with a [helicopter drone controlled by gaze-interaction](http://alexandre.alapetite.fr/research/gaze-drone/).
+Results to appear in “The Use of Gaze to Control Drones”, ETRA’2014 conference.
+
+--
+
 ## AR.Drone [![Build Status](https://travis-ci.org/Ruslan-B/AR.Drone.png)](https://travis-ci.org/Ruslan-B/AR.Drone)
 
 The AR.Drone 2.0 controlling library for C#/.NET and Mono, with video support.  
